@@ -146,17 +146,84 @@ scaled_ds.head()
 #Initiating PCA to reduce dimentions aka features to 3
 pca = PCA(n_components=3)
 pca.fit(scaled_ds)
-PCA_ds = pd.DataFrame(pca.transform(scaled_ds), columns=(["col1","col2", "col3"]))
-PCA_ds.describe().T
+TemelBilesenAnaliz_ds = pd.DataFrame(pca.transform(scaled_ds), columns=(["col1", "col2", "col3"]))
+TemelBilesenAnaliz_ds.describe().T
 
 #A 3D Projection Of Data In The Reduced Dimension
-x =PCA_ds["col1"]
-y =PCA_ds["col2"]
-z =PCA_ds["col3"]
+x =TemelBilesenAnaliz_ds["col1"]
+y =TemelBilesenAnaliz_ds["col2"]
+z =TemelBilesenAnaliz_ds["col3"]
 #To plot
 fig = plt.figure(figsize=(10,8))
 ax = fig.add_subplot(111, projection="3d")
 ax.scatter(x, y, z, c='red', marker="o")
 ax.set_title("A 3D Projection Of Data In The Reduced Dimension")
 plt.show()
+
+# %% CLUSTERING
+# Quick examination of elbow method to find numbers of clusters to make.
+print('Elbow Method to determine the number of clusters to be formed:')
+Elbow_M = KElbowVisualizer(KMeans(), k=10)
+Elbow_M.fit(TemelBilesenAnaliz_ds)
+Elbow_M.show()
+
+#Initiating the Agglomerative Clustering model
+AC = AgglomerativeClustering(n_clusters=4)
+# fit model and predict clusters
+yhat_AC = AC.fit_predict(TemelBilesenAnaliz_ds)
+TemelBilesenAnaliz_ds["Clusters"] = yhat_AC
+#Adding the Clusters feature to the orignal dataframe.
+data["Clusters"]= yhat_AC
+
+#Plotting the clusters
+fig = plt.figure(figsize=(10,8))
+ax = plt.subplot(111, projection='3d', label="bla")
+ax.scatter(x, y, z, s=40, c=TemelBilesenAnaliz_ds["Clusters"], marker='o', cmap = cmap)
+ax.set_title("The Plot Of The Clusters")
+plt.show()
+
+# %% EVALUATING MODELS
+#Plotting countplot of clusters
+pal = ["#682F2F","#B9C0C9", "#9F8A78","#F3AB60"]
+plot = sns.countplot(x=data["Clusters"], palette= pal)
+plot.set_title("Distribution Of The Clusters")
+plt.show()
+
+# %%
+plot = sns.scatterplot(data = data, x=data["Spent"], y=data["Income"], hue=data["Clusters"], palette= pal)
+plot.set_title("Cluster's Profile Based On Income And Spending")
+plt.legend()
+plt.show()
+# group 0: çok harcama & ortalama gelir
+# group 1: çok harcama & çok gelir
+# group 2: az harcama & az gelir
+# group 3: çok harcama & az gelir
+# %%
+plt.figure()
+plot=sns.swarmplot(x=data["Clusters"], y=data["Spent"], color="#CBEDDD", alpha=0.5)
+plot=sns.boxenplot(x=data["Clusters"], y=data["Spent"], palette=pal)
+plt.show()
+
+#%% Creating a feature to get a sum of accepted promotions
+data["Total_Promos"] = data["AcceptedCmp1"]+ data["AcceptedCmp2"]+ data["AcceptedCmp3"]+ data["AcceptedCmp4"]+ data["AcceptedCmp5"]
+#Plotting count of total campaign accepted.
+plt.figure()
+plot = sns.countplot(x=data["Total_Promos"], hue=data["Clusters"], palette= pal)
+plot.set_title("Count Of Promotion Accepted")
+plot.set_xlabel("Number Of Total Accepted Promotions")
+plt.show()
+
+#Plotting the number of deals purchased
+plt.figure()
+plot=sns.boxenplot(y=data["NumDealsPurchases"], x=data["Clusters"], palette= pal)
+plot.set_title("Number of Deals Purchased")
+plt.show()
+
+# %% PROFILING
+Personal = [ "Kidhome","Teenhome","Customer_For", "Age", "Children", "Family_Size", "Is_Parent", "Education","Living_With"]
+
+for i in Personal:
+    plt.figure()
+    sns.jointplot(x=data[i], y=data["Spent"], hue =data["Clusters"], kind="kde", palette=pal)
+    plt.show()
 
